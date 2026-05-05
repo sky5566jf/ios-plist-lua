@@ -25,11 +25,14 @@ jobs:
           curl -sL https://www.lua.org/ftp/lua-5.4.6.tar.gz -o lua.tar.gz
           tar xzf lua.tar.gz
 
-      - name: Build x86_64 liblua (macOS native)
+      - name: Build x86_64 liblua (macOS SDK, cross-compile for iOS Simulator)
         run: |
+          SIM=${{ steps.sdk.outputs.iphonesim }}
           cd lua-5.4.6/src
           rm -f *.o ../../lua-x86_64.a
-          CFLAGS="-DLUA_USE_MACOS -DLUA_COMPAT_5_3 -O2 -Wall -Wextra"
+          # Use custom flag: no system(), no ios restrictions, just macOS headers
+          CFLAGS="-DLUA_USE_LINUX -DLUA_COMPAT_5_3 -DLUA_IOS_TARGET -O2 -Wall -Wextra -Wno-incompatible-function-pointer-types"
+          echo '#define lua_system(cmd) ((void)0)' >> lua_conf.h
           for f in lapi.c lauxlib.c lbaselib.c lcode.c lcorolib.c lctype.c ldebug.c ldo.c ldump.c lfunc.c lgc.c llex.c lmem.c lobject.c lopcodes.c lparser.c lstate.c lstring.c ltable.c ltm.c lundump.c lvm.c lzio.c liolib.c lmathlib.c loslib.c lstrlib.c ltablib.c lutf8lib.c ldblib.c loadlib.c linit.c; do
             clang $CFLAGS -target x86_64-apple-ios-simulator -c $f
           done
