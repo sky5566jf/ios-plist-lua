@@ -24,14 +24,42 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Lua
-        run: brew install lua
+      - name: Install Lua headers (download from source)
+        run: |
+          curl -sL https://www.lua.org/ftp/lua-5.4.6.tar.gz | tar xz
+          LUA_DIR=$(find . -maxdepth 1 -type d -name 'lua-*' | head -1)
+          mkdir -p lua_include
+          cp "$LUA_DIR/src/lua.h" lua_include/
+          cp "$LUA_DIR/src/lauxlib.h" lua_include/
+          cp "$LUA_DIR/src/luaconf.h" lua_include/
+          cp "$LUA_DIR/src/lua.hpp" lua_include/ 2>/dev/null || true
+          cp "$LUA_DIR/src/luajit.h" lua_include/ 2>/dev/null || true
+          cp "$LUA_DIR/src/lua.hpp" lua_include/lua.hpp 2>/dev/null || true
+          cp "$LUA_DIR/src/llimits.h" lua_include/ 2>/dev/null || true
+          cp "$LUA_DIR/src/lstate.h" lua_include/ 2>/dev/null || true
+          cp "$LUA_DIR/src/ldebug.h" lua_include/ 2>/dev/null || true
+          cp "$LUA_DIR/src/lopcodes.h" lua_include/ 2>/dev/null || true
+          cp "$LUA_DIR/src/ltm.h" lua_include/ 2>/dev/null || true
+          cp "$LUA_DIR/src/lobject.h" lua_include/ 2>/dev/null || true
+          cp "$LUA_DIR/src/lzio.h" lua_include/ 2>/dev/null || true
+          cp "$LUA_DIR/src/lcode.h" lua_include/ 2>/dev/null || true
+          cp "$LUA_DIR/src/ltable.h" lua_include/ 2>/dev/null || true
+          cp "$LUA_DIR/src/ltable.c" lua_include/ 2>/dev/null || true
+          cp "$LUA_DIR/src/lvm.h" lua_include/ 2>/dev/null || true
+          cp "$LUA_DIR/src/ldo.h" lua_include/ 2>/dev/null || true
+          cp "$LUA_DIR/src/lfunc.h" lua_include/ 2>/dev/null || true
+          cp "$LUA_DIR/src/lgc.h" lua_include/ 2>/dev/null || true
+          cp "$LUA_DIR/src/lmem.h" lua_include/ 2>/dev/null || true
+          cp "$LUA_DIR/src/lstring.h" lua_include/ 2>/dev/null || true
+          cp "$LUA_DIR/src/lnum.h" lua_include/ 2>/dev/null || true
+          cp "$LUA_DIR/src/lundump.h" lua_include/ 2>/dev/null || true
+          cp "$LUA_DIR/src/lapi.h" lua_include/ 2>/dev/null || true
+          cp "$LUA_DIR/src/lcallback.h" lua_include/ 2>/dev/null || true
+          cp "$LUA_DIR/src/lua.c" lua_include/ 2>/dev/null || true
+          cp "$LUA_DIR/src/luac.c" lua_include/ 2>/dev/null || true
 
       - name: Build sz.dylib
         run: |
-          LUA_PREFIX=$(brew --prefix lua)
-          LUA_INC="$LUA_PREFIX/include"
-          LUA_LIB="$LUA_PREFIX/lib"
           SDK_PATH=$(xcrun --sdk ${{ matrix.sdk }} --show-sdk-path)
 
           xcrun --sdk ${{ matrix.sdk }} clang \
@@ -40,8 +68,7 @@ jobs:
             -o sz-${{ matrix.arch }}.dylib \
             sz.c \
             -isysroot "$SDK_PATH" \
-            -I"$LUA_INC" \
-            -L"$LUA_LIB" \
+            -I./lua_include \
             -llua
 
       - name: Upload artifact
