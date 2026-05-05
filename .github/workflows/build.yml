@@ -25,13 +25,16 @@ jobs:
           make macosx CC=clang
           cd ..
 
-      - name: Copy CoreFoundation headers from macOS SDK
+      - name: Extract CoreFoundation headers from macOS SDK
         run: |
           MACOS_SDK=$(xcrun --sdk macosx --show-sdk-path)
-          mkdir -p include/CoreFoundation
-          cp "$MACOS_SDK/System/Library/Frameworks/CoreFoundation.framework/Headers/"*.h include/CoreFoundation/
+          mkdir -p cf_include/CoreFoundation
+          # Copy all CF headers
+          cp "$MACOS_SDK/System/Library/Frameworks/CoreFoundation.framework/Headers/"*.h cf_include/CoreFoundation/
+          # The module map is needed for umbrella headers
+          cp -r "$MACOS_SDK/System/Library/Frameworks/CoreFoundation.framework/Modules" cf_include/CoreFoundation/ 2>/dev/null || true
 
-      - name: Build arm64 + arm64e dylibs (device)
+      - name: Build device dylibs (arm64 + arm64e)
         run: |
           IPHONE_SDK=$(xcrun --sdk iphoneos --show-sdk-path)
           LUA_SRC=lua-5.4.6/src
@@ -43,13 +46,13 @@ jobs:
               -o sz-$arch.dylib \
               sz.c \
               -isysroot "$IPHONE_SDK" \
-              -I./include \
+              -I./cf_include \
               -I"$LUA_SRC" \
               "$LUA_SRC/liblua.a" \
               -lm
           done
 
-      - name: Build x86_64 dylib (simulator)
+      - name: Build simulator dylib (x86_64)
         run: |
           SIM_SDK=$(xcrun --sdk iphonesimulator --show-sdk-path)
           LUA_SRC=lua-5.4.6/src
@@ -60,7 +63,7 @@ jobs:
             -o sz-x86_64.dylib \
             sz.c \
             -isysroot "$SIM_SDK" \
-            -I./include \
+            -I./cf_include \
             -I"$LUA_SRC" \
             "$LUA_SRC/liblua.a" \
             -lm
