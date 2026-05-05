@@ -27,28 +27,19 @@ jobs:
       - name: Install Lua
         run: brew install lua
 
-      - name: Find Lua paths
-        id: lua
-        run: |
-          LUA_PREFIX=$(brew --prefix lua)
-          echo "include=$LUA_PREFIX/include"
-          echo "lib=$LUA_PREFIX/lib"
-          echo "prefix=$LUA_PREFIX"
-        shell: bash
-
       - name: Build sz.dylib
         run: |
+          LUA_PREFIX=$(brew --prefix lua)
+          LUA_INC="$LUA_PREFIX/include"
+          LUA_LIB="$LUA_PREFIX/lib"
           SDK_PATH=$(xcrun --sdk ${{ matrix.sdk }} --show-sdk-path)
-          LUA_INC="${{ steps.lua.outputs.prefix }}/include"
-          LUA_LIB="${{ steps.lua.outputs.prefix }}/lib"
 
           xcrun --sdk ${{ matrix.sdk }} clang \
             -arch ${{ matrix.arch }} \
             -shared \
             -o sz-${{ matrix.arch }}.dylib \
             sz.c \
-            -sysroot "$SDK_PATH" \
-            -F/Library/Developer/CoreFoundation/System/Library/Frameworks \
+            -isysroot "$SDK_PATH" \
             -I"$LUA_INC" \
             -L"$LUA_LIB" \
             -llua
