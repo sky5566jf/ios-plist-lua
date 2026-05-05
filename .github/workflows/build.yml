@@ -25,14 +25,12 @@ jobs:
           curl -sL https://www.lua.org/ftp/lua-5.4.6.tar.gz -o lua.tar.gz
           tar xzf lua.tar.gz
 
-      - name: Build x86_64 liblua
+      - name: Build x86_64 liblua (macOS SDK, x86_64 host)
         run: |
           cd lua-5.4.6/src
           rm -f *.o ../../lua-x86_64.a
           CFLAGS="-DLUA_USE_POSIX -DLUA_COMPAT_5_3 -O2 -Wall -Wextra"
-          for f in lapi.c lauxlib.c lbaselib.c lcode.c lcorolib.c lctype.c ldebug.c ldo.c ldump.c lfunc.c lgc.c llex.c lmem.c lobject.c lopcodes.c lparser.c lstate.c lstring.c ltable.c ltm.c lundump.c lvm.c lzio.c liolib.c lmathlib.c loslib.c lstrlib.c ltablib.c lutf8lib.c ldblib.c loadlib.c linit.c; do
-            clang $CFLAGS -target x86_64-apple-ios-simulator -isysroot ${{ steps.sdk.outputs.iphonesim }} -c $f
-          done
+          clang $CFLAGS -target x86_64-apple-ios-simulator -arch x86_64 -c lapi.c lauxlib.c lbaselib.c lcode.c lcorolib.c lctype.c ldebug.c ldo.c ldump.c lfunc.c lgc.c llex.c lmem.c lobject.c lopcodes.c lparser.c lstate.c lstring.c ltable.c ltm.c lundump.c lvm.c lzio.c liolib.c lmathlib.c loslib.c lstrlib.c ltablib.c lutf8lib.c ldblib.c loadlib.c linit.c
           ar rcs ../../lua-x86_64.a lapi.o lauxlib.o lbaselib.o lcode.o lcorolib.o lctype.o ldebug.o ldo.o ldump.o lfunc.o lgc.o llex.o lmem.o lobject.o lopcodes.o lparser.o lstate.o lstring.o ltable.o ltm.o lundump.o lvm.o lzio.o liolib.o lmathlib.o loslib.o lstrlib.o ltablib.o lutf8lib.o ldblib.o loadlib.o linit.o
 
       - name: Build arm64e liblua
