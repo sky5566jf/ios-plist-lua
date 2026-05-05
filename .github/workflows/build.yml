@@ -1,0 +1,40 @@
+name: Build iOS dylib
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - arch: arm64
+            sdk: iphoneos
+          - arch: arm64e
+            sdk: iphoneos
+          - arch: x86_64
+            sdk: iphonesimulator
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build sz.dylib
+        run: |
+          xcrun --sdk ${{ matrix.target.sdk }} clang \
+            -arch ${{ matrix.target.arch }} \
+            -shared \
+            -o sz-${{ matrix.target.arch }}.dylib \
+            sz.c \
+            -framework CoreFoundation
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sz-${{ matrix.target.arch }}.dylib
+          path: sz-${{ matrix.target.arch }}.dylib
