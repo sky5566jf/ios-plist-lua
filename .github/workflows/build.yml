@@ -25,51 +25,39 @@ jobs:
           curl -sL https://www.lua.org/ftp/lua-5.4.6.tar.gz -o lua.tar.gz
           tar xzf lua.tar.gz
 
-      - name: Build arm64 liblua
-        run: |
-          cd lua-5.4.6/src
-          rm -f *.o lua-arm64.a
-          CFLAGS="-DLUA_USE_IOS -DLUA_COMPAT_5_3 -O2 -Wall -Wextra"
-          for f in lapi.c lauxlib.c lbaselib.c lcode.c lcorolib.c lctype.c ldebug.c ldo.c ldump.c lfunc.c lgc.c llex.c lmem.c lobject.c lopcodes.c lparser.c lstate.c lstring.c ltable.c ltm.c lundump.c lvm.c lzio.c liolib.c lmathlib.c lstrlib.c ltablib.c lutf8lib.c ldblib.c loadlib.c linit.c; do
-            clang $CFLAGS -target arm64-apple-ios12.0-simulator -isysroot ${{ steps.sdk.outputs.iphonesim }} -c $f
-          done
-          ar rcs lua-arm64.a lapi.o lauxlib.o lbaselib.o lcode.o lcorolib.o lctype.o ldebug.o ldo.o ldump.o lfunc.o lgc.o llex.o lmem.o lobject.o lopcodes.o lparser.o lstate.o lstring.o ltable.o ltm.o lundump.o lvm.o lzio.o liolib.o lmathlib.o lstrlib.o ltablib.o lutf8lib.o ldblib.o loadlib.o linit.o
-
-      - name: Build arm64e liblua
-        run: |
-          cd lua-5.4.6/src
-          rm -f *.o lua-arm64e.a
-          CFLAGS="-DLUA_USE_IOS -DLUA_COMPAT_5_3 -O2 -Wall -Wextra"
-          for f in lapi.c lauxlib.c lbaselib.c lcode.c lcorolib.c lctype.c ldebug.c ldo.c ldump.c lfunc.c lgc.c llex.c lmem.c lobject.c lopcodes.c lparser.c lstate.c lstring.c ltable.c ltm.c lundump.c lvm.c lzio.c liolib.c lmathlib.c lstrlib.c ltablib.c lutf8lib.c ldblib.c loadlib.c linit.c; do
-            clang $CFLAGS -target arm64e-apple-ios14.0-simulator -isysroot ${{ steps.sdk.outputs.iphonesim }} -c $f
-          done
-          ar rcs lua-arm64e.a lapi.o lauxlib.o lbaselib.o lcode.o lcorolib.o lctype.o ldebug.o ldo.o ldump.o lfunc.o lgc.o llex.o lmem.o lobject.o lopcodes.o lparser.o lstate.o lstring.o ltable.o ltm.o lundump.o lvm.o lzio.o liolib.o lmathlib.o lstrlib.o ltablib.o lutf8lib.o ldblib.o loadlib.o linit.o
-
-      - name: Build x86_64 liblua
+      - name: Build x86_64 liblua (macOS)
         run: |
           cd lua-5.4.6
           make clean > /dev/null 2>&1
           make macosx CC=clang
-          cp src/liblua.a lua-x86_64.a
+          cp src/liblua.a ../lua-x86_64.a
+
+      - name: Build arm64e liblua
+        run: |
+          cd lua-5.4.6/src
+          rm -f *.o ../../lua-arm64e.a
+          CFLAGS="-DLUA_USE_IOS -DLUA_COMPAT_5_3 -O2 -Wall -Wextra"
+          for f in lapi.c lauxlib.c lbaselib.c lcode.c lcorolib.c lctype.c ldebug.c ldo.c ldump.c lfunc.c lgc.c llex.c lmem.c lobject.c lopcodes.c lparser.c lstate.c lstring.c ltable.c ltm.c lundump.c lvm.c lzio.c liolib.c lmathlib.c lstrlib.c ltablib.c lutf8lib.c ldblib.c loadlib.c linit.c; do
+            clang $CFLAGS -target arm64e-apple-ios14.0-simulator -isysroot ${{ steps.sdk.outputs.iphonesim }} -c $f
+          done
+          ar rcs ../../lua-arm64e.a lapi.o lauxlib.o lbaselib.o lcode.o lcorolib.o lctype.o ldebug.o ldo.o ldump.o lfunc.o lgc.o llex.o lmem.o lobject.o lopcodes.o lparser.o lstate.o lstring.o ltable.o ltm.o lundump.o lvm.o lzio.o liolib.o lmathlib.o lstrlib.o ltablib.o lutf8lib.o ldblib.o loadlib.o linit.o
+
+      - name: Build arm64 liblua
+        run: |
+          cd lua-5.4.6/src
+          rm -f *.o ../../lua-arm64.a
+          CFLAGS="-DLUA_USE_IOS -DLUA_COMPAT_5_3 -O2 -Wall -Wextra"
+          for f in lapi.c lauxlib.c lbaselib.c lcode.c lcorolib.c lctype.c ldebug.c ldo.c ldump.c lfunc.c lgc.c llex.c lmem.c lobject.c lopcodes.c lparser.c lstate.c lstring.c ltable.c ltm.c lundump.c lvm.c lzio.c liolib.c lmathlib.c lstrlib.c ltablib.c lutf8lib.c ldblib.c loadlib.c linit.c; do
+            clang $CFLAGS -target arm64-apple-ios12.0-simulator -isysroot ${{ steps.sdk.outputs.iphonesim }} -c $f
+          done
+          ar rcs ../../lua-arm64.a lapi.o lauxlib.o lbaselib.o lcode.o lcorolib.o lctype.o ldebug.o ldo.o ldump.o lfunc.o lgc.o llex.o lmem.o lobject.o lopcodes.o lparser.o lstate.o lstring.o ltable.o ltm.o lundump.o lvm.o lzio.o liolib.o lmathlib.o lstrlib.o ltablib.o lutf8lib.o ldblib.o loadlib.o linit.o
 
       - name: Build sz dylibs
         run: |
           SIM=${{ steps.sdk.outputs.iphonesim }}
-
-          # x86_64
-          clang -target x86_64-apple-ios-simulator -arch x86_64 -isysroot "$SIM" \
-            -shared -o sz-x86_64.dylib sz.c \
-            -I"lua-5.4.6/src" lua-x86_64.a -lm -framework CoreFoundation
-
-          # arm64
-          clang -target arm64-apple-ios12.0-simulator -arch arm64 -isysroot "$SIM" \
-            -shared -o sz-arm64.dylib sz.c \
-            -I"lua-5.4.6/src" lua-5.4.6/src/lua-arm64.a -lm -framework CoreFoundation
-
-          # arm64e
-          clang -target arm64e-apple-ios14.0-simulator -arch arm64e -isysroot "$SIM" \
-            -shared -o sz-arm64e.dylib sz.c \
-            -I"lua-5.4.6/src" lua-5.4.6/src/lua-arm64e.a -lm -framework CoreFoundation
+          clang -target x86_64-apple-ios-simulator -arch x86_64 -isysroot "$SIM" -shared -o sz-x86_64.dylib sz.c -I"lua-5.4.6/src" lua-x86_64.a -lm -framework CoreFoundation
+          clang -target arm64-apple-ios12.0-simulator -arch arm64 -isysroot "$SIM" -shared -o sz-arm64.dylib sz.c -I"lua-5.4.6/src" lua-arm64.a -lm -framework CoreFoundation
+          clang -target arm64e-apple-ios14.0-simulator -arch arm64e -isysroot "$SIM" -shared -o sz-arm64e.dylib sz.c -I"lua-5.4.6/src" lua-arm64e.a -lm -framework CoreFoundation
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
