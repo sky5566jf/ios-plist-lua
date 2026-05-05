@@ -10,16 +10,6 @@ on:
 jobs:
   build:
     runs-on: macos-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - arch: arm64
-            sdk: iphoneos
-          - arch: arm64e
-            sdk: iphoneos
-          - arch: x86_64
-            sdk: iphonesimulator
 
     steps:
       - uses: actions/checkout@v4
@@ -35,30 +25,51 @@ jobs:
           make macosx CC=clang
           cd ..
 
-      - name: Build sz.dylib
-        env:
-          SDK_PATH: ${{ matrix.sdk == 'iphonesimulator' && 'iphonesimulator' || 'iphoneos' }}
+      - name: Copy CoreFoundation headers from macOS SDK
         run: |
-          IPHONE_SDK=$(xcrun --sdk ${{ matrix.sdk }} --show-sdk-path)
           MACOS_SDK=$(xcrun --sdk macosx --show-sdk-path)
+          mkdir -p include/CoreFoundation
+          cp "$MACOS_SDK/System/Library/Frameworks/CoreFoundation.framework/Headers/"*.h include/CoreFoundation/
+
+      - name: Build arm64 + arm64e dylibs (device)
+        run: |
+          IPHONE_SDK=$(xcrun --sdk iphoneos --show-sdk-path)
           LUA_SRC=lua-5.4.6/src
 
-          # Use iOS SDK for target arch, macOS SDK for system frameworks (CoreFoundation)
-          xcrun --sdk ${{ matrix.sdk }} clang \
-            -arch ${{ matrix.arch }} \
+          for arch in arm64 arm64e; do
+            xcrun --sdk iphoneos clang \
+              -arch $arch \
+              -shared \
+              -o sz-$arch.dylib \
+              sz.c \
+              -isysroot "$IPHONE_SDK" \
+              -I./include \
+              -I"$LUA_SRC" \
+              "$LUA_SRC/liblua.a" \
+              -lm
+          done
+
+      - name: Build x86_64 dylib (simulator)
+        run: |
+          SIM_SDK=$(xcrun --sdk iphonesimulator --show-sdk-path)
+          LUA_SRC=lua-5.4.6/src
+
+          xcrun --sdk iphonesimulator clang \
+            -arch x86_64 \
             -shared \
-            -o sz-${{ matrix.arch }}.dylib \
+            -o sz-x86_64.dylib \
             sz.c \
-            -isysroot "$IPHONE_SDK" \
+            -isysroot "$SIM_SDK" \
+            -I./include \
             -I"$LUA_SRC" \
             "$LUA_SRC/liblua.a" \
-            -lm \
-            -F"$MACOS_SDK/System/Library/Frameworks" \
-            -framework CoreFoundation \
-            -Wl,-U,_CFBooleanCreate
+            -lm
 
-      - name: Upload artifact
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: sz-${{ matrix.arch }}.dylib
-          path: sz-${{ matrix.arch }}.dylib
+          name: sz-dylibs
+          path: |
+            sz-arm64.dylib
+            sz-arm64e.dylib
+            sz-x86_64.dylib
