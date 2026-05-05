@@ -29,10 +29,7 @@ jobs:
         run: |
           MACOS_SDK=$(xcrun --sdk macosx --show-sdk-path)
           mkdir -p cf_include/CoreFoundation
-          # Copy all CF headers
           cp "$MACOS_SDK/System/Library/Frameworks/CoreFoundation.framework/Headers/"*.h cf_include/CoreFoundation/
-          # The module map is needed for umbrella headers
-          cp -r "$MACOS_SDK/System/Library/Frameworks/CoreFoundation.framework/Modules" cf_include/CoreFoundation/ 2>/dev/null || true
 
       - name: Build device dylibs (arm64 + arm64e)
         run: |
@@ -43,6 +40,7 @@ jobs:
             xcrun --sdk iphoneos clang \
               -arch $arch \
               -shared \
+              -fno-modules \
               -o sz-$arch.dylib \
               sz.c \
               -isysroot "$IPHONE_SDK" \
@@ -60,6 +58,7 @@ jobs:
           xcrun --sdk iphonesimulator clang \
             -arch x86_64 \
             -shared \
+            -fno-modules \
             -o sz-x86_64.dylib \
             sz.c \
             -isysroot "$SIM_SDK" \
