@@ -16,63 +16,45 @@ jobs:
         include:
           - arch: arm64
             sdk: iphoneos
-          - arch: arm64e
-            sdk: iphoneos
+            extra_archs: arm64e
           - arch: x86_64
             sdk: iphonesimulator
+            extra_archs: ""
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Lua headers (download from source)
+      - name: Download Lua source
         run: |
-          curl -sL https://www.lua.org/ftp/lua-5.4.6.tar.gz | tar xz
-          LUA_DIR=$(find . -maxdepth 1 -type d -name 'lua-*' | head -1)
-          mkdir -p lua_include
-          cp "$LUA_DIR/src/lua.h" lua_include/
-          cp "$LUA_DIR/src/lauxlib.h" lua_include/
-          cp "$LUA_DIR/src/luaconf.h" lua_include/
-          cp "$LUA_DIR/src/lua.hpp" lua_include/ 2>/dev/null || true
-          cp "$LUA_DIR/src/luajit.h" lua_include/ 2>/dev/null || true
-          cp "$LUA_DIR/src/lua.hpp" lua_include/lua.hpp 2>/dev/null || true
-          cp "$LUA_DIR/src/llimits.h" lua_include/ 2>/dev/null || true
-          cp "$LUA_DIR/src/lstate.h" lua_include/ 2>/dev/null || true
-          cp "$LUA_DIR/src/ldebug.h" lua_include/ 2>/dev/null || true
-          cp "$LUA_DIR/src/lopcodes.h" lua_include/ 2>/dev/null || true
-          cp "$LUA_DIR/src/ltm.h" lua_include/ 2>/dev/null || true
-          cp "$LUA_DIR/src/lobject.h" lua_include/ 2>/dev/null || true
-          cp "$LUA_DIR/src/lzio.h" lua_include/ 2>/dev/null || true
-          cp "$LUA_DIR/src/lcode.h" lua_include/ 2>/dev/null || true
-          cp "$LUA_DIR/src/ltable.h" lua_include/ 2>/dev/null || true
-          cp "$LUA_DIR/src/ltable.c" lua_include/ 2>/dev/null || true
-          cp "$LUA_DIR/src/lvm.h" lua_include/ 2>/dev/null || true
-          cp "$LUA_DIR/src/ldo.h" lua_include/ 2>/dev/null || true
-          cp "$LUA_DIR/src/lfunc.h" lua_include/ 2>/dev/null || true
-          cp "$LUA_DIR/src/lgc.h" lua_include/ 2>/dev/null || true
-          cp "$LUA_DIR/src/lmem.h" lua_include/ 2>/dev/null || true
-          cp "$LUA_DIR/src/lstring.h" lua_include/ 2>/dev/null || true
-          cp "$LUA_DIR/src/lnum.h" lua_include/ 2>/dev/null || true
-          cp "$LUA_DIR/src/lundump.h" lua_include/ 2>/dev/null || true
-          cp "$LUA_DIR/src/lapi.h" lua_include/ 2>/dev/null || true
-          cp "$LUA_DIR/src/lcallback.h" lua_include/ 2>/dev/null || true
-          cp "$LUA_DIR/src/lua.c" lua_include/ 2>/dev/null || true
-          cp "$LUA_DIR/src/luac.c" lua_include/ 2>/dev/null || true
+          curl -sL https://www.lua.org/ftp/lua-5.4.6.tar.gz -o lua.tar.gz
+          tar xzf lua.tar.gz
 
-      - name: Build sz.dylib
+      - name: Build Lua for host (to get headers reference)
+        run: |
+          cd lua-5.4.6
+          make macosx CC=clang
+          cd ..
+
+      - name: Build sz.dylib (arm64 + arm64e for device, x86_64 for simulator)
         run: |
           SDK_PATH=$(xcrun --sdk ${{ matrix.sdk }} --show-sdk-path)
+          LUA_SRC=lua-5.4.6/src
 
-          xcrun --sdk ${{ matrix.sdk }} clang \
-            -arch ${{ matrix.arch }} \
-            -shared \
-            -o sz-${{ matrix.arch }}.dylib \
-            sz.c \
-            -isysroot "$SDK_PATH" \
-            -I./lua_include \
-            -llua
+          if [ "${{ matrix.sdk }}" = "iphoneos" ]; then
+            # Multi-arch: arm64 + arm64e
+            clang -arch arm64 -shared -o sz-arm64.dylib sz.c \
+              -isysroot "$SDK_PATH" -I"$LUA_SRC" "$LUA_SRC/liblua.a" -lm
+            clang -arch arm64e -shared -o sz-arm64e.dylib sz.c \
+              -isysroot "$SDK_PATH" -I"$LUA_SRC" "$LUA_SRC/liblua.a" -lm
+          else
+            # Simulator: x86_64
+            clang -arch x86_64 -shared -o sz-x86_64.dylib sz.c \
+              -isysroot "$SDK_PATH" -I"$LUA_SRC" "$LUA_SRC/liblua.a" -lm
+          fi
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: sz-${{ matrix.arch }}.dylib
-          path: sz-${{ matrix.arch }}.dylib
+          name: sz-${{ matrix.sdk }}
+          path: |
+            sz-*.dylib
