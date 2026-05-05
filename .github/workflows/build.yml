@@ -58,7 +58,7 @@ jobs:
       - name: Build sz dylibs
         run: |
           SIM=${{ steps.sdk.outputs.iphonesim }}
-          clang -target x86_64-apple-ios-simulator -arch x86_64 -isysroot "$SIM" -shared -o sz-x86_64.dylib sz.c -I"lua-5.4.6/src" lua-x86_64.a -lm -framework CoreFoundation
+          clang -target x86_64-apple-ios-simulator -o sz-x86_64.dylib sz.c -I"lua-5.4.6/src" lua-x86_64.a -lm -framework CoreFoundation -shared
           clang -target arm64-apple-ios12.0-simulator -arch arm64 -isysroot "$SIM" -shared -o sz-arm64.dylib sz.c -I"lua-5.4.6/src" lua-arm64.a -lm -framework CoreFoundation
           clang -target arm64e-apple-ios14.0-simulator -arch arm64e -isysroot "$SIM" -shared -o sz-arm64e.dylib sz.c -I"lua-5.4.6/src" lua-arm64e.a -lm -framework CoreFoundation
 
