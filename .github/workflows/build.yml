@@ -40,11 +40,12 @@ jobs:
           cd lua-5.4.6
           make clean
           make \
-            CC="clang -target arm64-apple-ios12.0-simulator -isysroot ${{ steps.sdk.outputs.iphonesim }}" \
-            AR="clang -target arm64-apple-ios12.0-simulator -isysroot ${{ steps.sdk.outputs.iphonesim }} -r" \
-            RANLIB="echo" \
-            MYCFLAGS="-O2" \
-            MYLDFLAGS="" \
+            CC="clang -DLUA_USE_IOS -DLUA_USE_POSIX -DLUA_COMPAT_5_3 -target arm64-apple-ios12.0-simulator -isysroot ${{ steps.sdk.outputs.iphonesim }}" \
+            AR="clang -DLUA_USE_IOS -target arm64-apple-ios12.0-simulator -isysroot ${{ steps.sdk.outputs.iphonesim }} -r" \
+            SYSLIBS="-lm" \
+            CORE_O="lapi.o lauxlib.o lbaselib.o lcode.o lcorolib.o lctype.o ldebug.o ldo.o ldump.o lfunc.o lgc.o llex.o lmem.o lobject.o lopcodes.o lparser.o lstate.o lstring.o ltable.o ltm.o lundump.o lvm.o lzio.o" \
+            LIB_O="liolib.o lmathlib.o lstrlib.o ltablib.o lutf8lib.o ldblib.o loadlib.o linit.o" \
+            MYCFLAGS="-DLUA_USE_IOS -DLUA_COMPAT_5_3" \
             generic
           cp src/liblua.a lua-arm64.a
           cd ..
@@ -54,11 +55,12 @@ jobs:
           cd lua-5.4.6
           make clean
           make \
-            CC="clang -target arm64e-apple-ios14.0-simulator -isysroot ${{ steps.sdk.outputs.iphonesim }}" \
-            AR="clang -target arm64e-apple-ios14.0-simulator -isysroot ${{ steps.sdk.outputs.iphonesim }} -r" \
-            RANLIB="echo" \
-            MYCFLAGS="-O2" \
-            MYLDFLAGS="" \
+            CC="clang -DLUA_USE_IOS -DLUA_USE_POSIX -DLUA_COMPAT_5_3 -target arm64e-apple-ios14.0-simulator -isysroot ${{ steps.sdk.outputs.iphonesim }}" \
+            AR="clang -DLUA_USE_IOS -target arm64e-apple-ios14.0-simulator -isysroot ${{ steps.sdk.outputs.iphonesim }} -r" \
+            SYSLIBS="-lm" \
+            CORE_O="lapi.o lauxlib.o lbaselib.o lcode.o lcorolib.o lctype.o ldebug.o ldo.o ldump.o lfunc.o lgc.o llex.o lmem.o lobject.o lopcodes.o lparser.o lstate.o lstring.o ltable.o ltm.o lundump.o lvm.o lzio.o" \
+            LIB_O="liolib.o lmathlib.o lstrlib.o ltablib.o lutf8lib.o ldblib.o loadlib.o linit.o" \
+            MYCFLAGS="-DLUA_USE_IOS -DLUA_COMPAT_5_3" \
             generic
           cp src/liblua.a lua-arm64e.a
           cd ..
