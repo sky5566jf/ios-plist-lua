@@ -25,13 +25,15 @@ jobs:
           curl -sL https://www.lua.org/ftp/lua-5.4.6.tar.gz -o lua.tar.gz
           tar xzf lua.tar.gz
 
-      - name: Build x86_64 liblua (native macOS)
+      - name: Build x86_64 liblua (iOS Simulator, macOS SDK)
         run: |
           cd lua-5.4.6/src
           rm -f *.o ../../lua-x86_64.a
+          # x86_64: no -isysroot → uses default macOS SDK → system() available
+          # but -target forces iOS arch → good for iOS Simulator binary
           CFLAGS="-DLUA_USE_MACOS -DLUA_COMPAT_5_3 -O2 -Wall -Wextra -Wno-incompatible-function-pointer-types"
           for f in lapi.c lauxlib.c lbaselib.c lcode.c lcorolib.c lctype.c ldebug.c ldo.c ldump.c lfunc.c lgc.c llex.c lmem.c lobject.c lopcodes.c lparser.c lstate.c lstring.c ltable.c ltm.c lundump.c lvm.c lzio.c liolib.c lmathlib.c loslib.c lstrlib.c ltablib.c lutf8lib.c ldblib.c loadlib.c linit.c; do
-            clang $CFLAGS -c $f
+            clang $CFLAGS -target x86_64-apple-ios-simulator -c $f
           done
           ar rcs ../../lua-x86_64.a lapi.o lauxlib.o lbaselib.o lcode.o lcorolib.o lctype.o ldebug.o ldo.o ldump.o lfunc.o lgc.o llex.o lmem.o lobject.o lopcodes.o lparser.o lstate.o lstring.o ltable.o ltm.o lundump.o lvm.o lzio.o liolib.o lmathlib.o loslib.o lstrlib.o ltablib.o lutf8lib.o ldblib.o loadlib.o linit.o
 
