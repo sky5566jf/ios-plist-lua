@@ -25,17 +25,14 @@ jobs:
           make macosx CC=clang
           cd ..
 
-      - name: Extract CoreFoundation headers from macOS SDK
-        run: |
-          MACOS_SDK=$(xcrun --sdk macosx --show-sdk-path)
-          mkdir -p cf_include/CoreFoundation
-          cp "$MACOS_SDK/System/Library/Frameworks/CoreFoundation.framework/Headers/"*.h cf_include/CoreFoundation/
-
       - name: Build device dylibs (arm64 + arm64e)
         run: |
           IPHONE_SDK=$(xcrun --sdk iphoneos --show-sdk-path)
+          MACOS_SDK=$(xcrun --sdk macosx --show-sdk-path)
           LUA_SRC=lua-5.4.6/src
 
+          # -fno-modules: disable clang modules so -F can find macOS SDK CF headers
+          # -F after -isysroot: macOS SDK frameworks work alongside iOS sysroot
           for arch in arm64 arm64e; do
             xcrun --sdk iphoneos clang \
               -arch $arch \
@@ -44,15 +41,16 @@ jobs:
               -o sz-$arch.dylib \
               sz.c \
               -isysroot "$IPHONE_SDK" \
-              -I./cf_include \
               -I"$LUA_SRC" \
               "$LUA_SRC/liblua.a" \
-              -lm
+              -lm \
+              -F"$MACOS_SDK/System/Library/Frameworks"
           done
 
       - name: Build simulator dylib (x86_64)
         run: |
           SIM_SDK=$(xcrun --sdk iphonesimulator --show-sdk-path)
+          MACOS_SDK=$(xcrun --sdk macosx --show-sdk-path)
           LUA_SRC=lua-5.4.6/src
 
           xcrun --sdk iphonesimulator clang \
@@ -62,10 +60,10 @@ jobs:
             -o sz-x86_64.dylib \
             sz.c \
             -isysroot "$SIM_SDK" \
-            -I./cf_include \
             -I"$LUA_SRC" \
             "$LUA_SRC/liblua.a" \
-            -lm
+            -lm \
+            -F"$MACOS_SDK/System/Library/Frameworks"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
