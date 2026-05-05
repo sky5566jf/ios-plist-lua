@@ -2,7 +2,6 @@
 #include <lauxlib.h>
 #include <lualib.h>
 #include <CoreFoundation/CoreFoundation.h>
-#include <CoreFoundation/CFNumber.h>
 
 // CFTypeRef → Lua
 static void cf_to_lua(lua_State *L, CFTypeRef ref) {
@@ -129,7 +128,7 @@ static CFTypeRef lua_to_cf(lua_State *L, int idx) {
             return CFNumberCreate(NULL, kCFNumberDoubleType, &n);
         }
         case LUA_TBOOLEAN: {
-            return CFBooleanCreate(NULL, lua_toboolean(L, idx));
+            return lua_toboolean(L, idx) ? kCFBooleanTrue : kCFBooleanFalse;
         }
         default:
             return CFRetain(kCFNull);

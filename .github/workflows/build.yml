@@ -2,9 +2,9 @@ name: Build iOS dylib
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
-    branches: [main]
+    branches: [master]
   workflow_dispatch:
 
 jobs:
@@ -13,6 +13,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Get SDK paths
+        id: sdk
+        run: |
+          IPHONE_SDK=$(xcrun --show-sdk-path --sdk iphoneos)
+          SIM_SDK=$(xcrun --show-sdk-path --sdk iphonesimulator)
+          echo "iphoneos=$IPHONE_SDK"
+          echo "iphonesimulator=$SIM_SDK"
+          echo "iphonesim=$SIM_SDK" >> $GITHUB_OUTPUT
 
       - name: Download Lua source
         run: |
@@ -25,31 +34,43 @@ jobs:
           make macosx CC=clang
           cd ..
 
-      - name: Build device dylibs (arm64 + arm64e)
+      - name: Build arm64 device dylib
         run: |
           LUA_SRC=lua-5.4.6/src
+          clang \
+            -target arm64-apple-ios12.0-simulator \
+            -arch arm64 \
+            -isysroot "${{ steps.sdk.outputs.iphonesim }}" \
+            -shared \
+            -o sz-arm64.dylib \
+            sz.c \
+            -I"$LUA_SRC" \
+            "$LUA_SRC/liblua.a" \
+            -lm \
+            -framework CoreFoundation
 
-          # Use macOS clang, -target for iOS arch, no -isysroot
-          for arch in arm64 arm64e; do
-            clang \
-              -target arm64-apple-ios$([ "$arch" = "arm64e" ] && echo "14.0" || echo "12.0")-simulator \
-              -arch $arch \
-              -shared \
-              -o sz-$arch.dylib \
-              sz.c \
-              -I"$LUA_SRC" \
-              "$LUA_SRC/liblua.a" \
-              -lm \
-              -framework CoreFoundation
-          done
-
-      - name: Build simulator dylib (x86_64)
+      - name: Build arm64e device dylib
         run: |
           LUA_SRC=lua-5.4.6/src
+          clang \
+            -target arm64e-apple-ios14.0-simulator \
+            -arch arm64e \
+            -isysroot "${{ steps.sdk.outputs.iphonesim }}" \
+            -shared \
+            -o sz-arm64e.dylib \
+            sz.c \
+            -I"$LUA_SRC" \
+            "$LUA_SRC/liblua.a" \
+            -lm \
+            -framework CoreFoundation
 
+      - name: Build x86_64 simulator dylib
+        run: |
+          LUA_SRC=lua-5.4.6/src
           clang \
             -target x86_64-apple-ios-simulator \
             -arch x86_64 \
+            -isysroot "${{ steps.sdk.outputs.iphonesim }}" \
             -shared \
             -o sz-x86_64.dylib \
             sz.c \
