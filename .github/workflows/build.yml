@@ -16,10 +16,10 @@ jobs:
         include:
           - arch: arm64
             sdk: iphoneos
-            extra_archs: arm64e
+          - arch: arm64e
+            sdk: iphoneos
           - arch: x86_64
             sdk: iphonesimulator
-            extra_archs: ""
 
     steps:
       - uses: actions/checkout@v4
@@ -29,32 +29,36 @@ jobs:
           curl -sL https://www.lua.org/ftp/lua-5.4.6.tar.gz -o lua.tar.gz
           tar xzf lua.tar.gz
 
-      - name: Build Lua for host (to get headers reference)
+      - name: Build Lua for host
         run: |
           cd lua-5.4.6
           make macosx CC=clang
           cd ..
 
-      - name: Build sz.dylib (arm64 + arm64e for device, x86_64 for simulator)
+      - name: Build sz.dylib
+        env:
+          SDK_PATH: ${{ matrix.sdk == 'iphonesimulator' && 'iphonesimulator' || 'iphoneos' }}
         run: |
-          SDK_PATH=$(xcrun --sdk ${{ matrix.sdk }} --show-sdk-path)
+          IPHONE_SDK=$(xcrun --sdk ${{ matrix.sdk }} --show-sdk-path)
+          MACOS_SDK=$(xcrun --sdk macosx --show-sdk-path)
           LUA_SRC=lua-5.4.6/src
 
-          if [ "${{ matrix.sdk }}" = "iphoneos" ]; then
-            # Multi-arch: arm64 + arm64e
-            clang -arch arm64 -shared -o sz-arm64.dylib sz.c \
-              -isysroot "$SDK_PATH" -I"$LUA_SRC" "$LUA_SRC/liblua.a" -lm
-            clang -arch arm64e -shared -o sz-arm64e.dylib sz.c \
-              -isysroot "$SDK_PATH" -I"$LUA_SRC" "$LUA_SRC/liblua.a" -lm
-          else
-            # Simulator: x86_64
-            clang -arch x86_64 -shared -o sz-x86_64.dylib sz.c \
-              -isysroot "$SDK_PATH" -I"$LUA_SRC" "$LUA_SRC/liblua.a" -lm
-          fi
+          # Use iOS SDK for target arch, macOS SDK for system frameworks (CoreFoundation)
+          xcrun --sdk ${{ matrix.sdk }} clang \
+            -arch ${{ matrix.arch }} \
+            -shared \
+            -o sz-${{ matrix.arch }}.dylib \
+            sz.c \
+            -isysroot "$IPHONE_SDK" \
+            -I"$LUA_SRC" \
+            "$LUA_SRC/liblua.a" \
+            -lm \
+            -F"$MACOS_SDK/System/Library/Frameworks" \
+            -framework CoreFoundation \
+            -Wl,-U,_CFBooleanCreate
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: sz-${{ matrix.sdk }}
-          path: |
-            sz-*.dylib
+          name: sz-${{ matrix.arch }}.dylib
+          path: sz-${{ matrix.arch }}.dylib
