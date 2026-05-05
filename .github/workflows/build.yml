@@ -24,6 +24,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install Lua
+        run: brew install lua
+
       - name: Build sz.dylib
         run: |
           xcrun --sdk ${{ matrix.target.sdk }} clang \
@@ -31,7 +34,9 @@ jobs:
             -shared \
             -o sz-${{ matrix.target.arch }}.dylib \
             sz.c \
-            -framework CoreFoundation
+            -framework CoreFoundation \
+            -I$(brew --prefix)/include \
+            -L$(brew --prefix)/lib -llua
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
