@@ -2,6 +2,7 @@
 #include <lauxlib.h>
 #include <lualib.h>
 #include <CoreFoundation/CoreFoundation.h>
+#include <CoreFoundation/CFNumber.h>
 
 // CFTypeRef → Lua
 static void cf_to_lua(lua_State *L, CFTypeRef ref) {
