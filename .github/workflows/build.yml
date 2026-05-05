@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target:
+        include:
           - arch: arm64
             sdk: iphoneos
           - arch: arm64e
@@ -27,19 +27,34 @@ jobs:
       - name: Install Lua
         run: brew install lua
 
+      - name: Find Lua paths
+        id: lua
+        run: |
+          LUA_PREFIX=$(brew --prefix lua)
+          echo "include=$LUA_PREFIX/include"
+          echo "lib=$LUA_PREFIX/lib"
+          echo "prefix=$LUA_PREFIX"
+        shell: bash
+
       - name: Build sz.dylib
         run: |
-          xcrun --sdk ${{ matrix.target.sdk }} clang \
-            -arch ${{ matrix.target.arch }} \
+          SDK_PATH=$(xcrun --sdk ${{ matrix.sdk }} --show-sdk-path)
+          LUA_INC="${{ steps.lua.outputs.prefix }}/include"
+          LUA_LIB="${{ steps.lua.outputs.prefix }}/lib"
+
+          xcrun --sdk ${{ matrix.sdk }} clang \
+            -arch ${{ matrix.arch }} \
             -shared \
-            -o sz-${{ matrix.target.arch }}.dylib \
+            -o sz-${{ matrix.arch }}.dylib \
             sz.c \
-            -framework CoreFoundation \
-            -I$(brew --prefix)/include \
-            -L$(brew --prefix)/lib -llua
+            -sysroot "$SDK_PATH" \
+            -F/Library/Developer/CoreFoundation/System/Library/Frameworks \
+            -I"$LUA_INC" \
+            -L"$LUA_LIB" \
+            -llua
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: sz-${{ matrix.target.arch }}.dylib
-          path: sz-${{ matrix.target.arch }}.dylib
+          name: sz-${{ matrix.arch }}.dylib
+          path: sz-${{ matrix.arch }}.dylib
